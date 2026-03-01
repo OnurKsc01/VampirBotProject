@@ -258,7 +258,7 @@ public class VampirBot extends TelegramLongPollingBot {
 
         String baslangicMetni = "Güneş kan kırmızısı bir renkle batıyor ve son ışıklar da kayboluyor...\n" +
                                 "Artık kimseye güvenme.\n\n" +
-                                "🌙 Gece çöktü. Rollerinizi ruhunuza fısıldamak için özel mesajlarınıza geliyorum.";
+                                "🌙 Gece çöktü. Rollerinizi ruhunuza fısıldamak için evlerinize geliyorum.";
         resimGonder(grupChatId, RESIM_GECE, baslangicMetni);
 
         List<String> rolHavuzu = new ArrayList<>();
@@ -575,3 +575,4 @@ public class VampirBot extends TelegramLongPollingBot {
         try { execute(mesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
 }
+
