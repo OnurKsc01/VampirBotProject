@@ -61,8 +61,7 @@ public class VampirBot extends TelegramLongPollingBot {
     }
 
     @Override
-    public String getBotToken() {
-        return "8710387701:AAEzu3pQsPLGmF-oIGUtpzSg-gMoBc2yTCs"; 
+    String token = System.getenv("8710387701:AAEzu3pQsPLGmF-oIGUtpzSg-gMoBc2yTCs");
     }
 
     @Override
@@ -546,4 +545,5 @@ public class VampirBot extends TelegramLongPollingBot {
         mesaj.setText(metin);
         try { execute(mesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
+
 }
