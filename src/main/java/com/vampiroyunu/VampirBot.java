@@ -1,7 +1,6 @@
 package com.vampiroyunu;
 
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageCaption;
@@ -32,7 +31,7 @@ public class VampirBot extends TelegramLongPollingBot {
     // --- KİLİT MEKANİZMALARI ---
     private boolean geceAktif = false;
     private boolean oylamaAktif = false;
-    private boolean oyunBasladi = false; 
+    private boolean oyunBasladi = false; // YENİ: Oyun başladığında komutları kilitlemek için
 
     private List<Long> hayattaOlanlar = new ArrayList<>();
     private Long vampirKarari = null;
@@ -51,6 +50,7 @@ public class VampirBot extends TelegramLongPollingBot {
     private final String RESIM_SABAH_TEMIZ = "https://i.ibb.co/gLJ4BtPW/Ekran-g-r-nt-s-2026-03-01-171702.png";
     private final String RESIM_IDAM = "https://i.ibb.co/5XKHV7Dp/idam.jpg";
     
+    // YENİ: Köylü kazanma görseli URL yapısı bozuk olduğu için Telegram engelliyordu, temizlendi.
     private final String RESIM_KAZANAN_KOYLU = "https://i.ibb.co/0y7YVr4k/Ekran-g-r-nt-s-2026-03-01-172054.png";
     private final String RESIM_KAZANAN_VAMPIR = "https://i.ibb.co/wZbGnFVQ/Ekran-g-r-nt-s-2026-03-01-173520.png";
 
@@ -78,6 +78,7 @@ public class VampirBot extends TelegramLongPollingBot {
             String isim = update.getMessage().getFrom().getFirstName();
 
             if (mesajMetni.startsWith("/lobi")) {
+                // YENİ: Aktif bir lobi veya oyun varsa engelle
                 if (aktifGrupChatId != 0) {
                     mesajGonder(chatId, "⚠️ Zaten açık bir lobi veya devam eden bir oyun var! Yeni lobi kurmak için önce /iptal yazmalısınız.");
                     return;
@@ -95,6 +96,7 @@ public class VampirBot extends TelegramLongPollingBot {
                 lobiMesajiniGonder(chatId);
             } 
             else if (mesajMetni.startsWith("/basla")) {
+                // YENİ: Oyun zaten başladıysa veya lobi yoksa engelle
                 if (aktifGrupChatId == 0) {
                     mesajGonder(chatId, "⚠️ Önce /lobi yazarak bir oyun kurmalısınız!");
                     return;
@@ -161,12 +163,6 @@ public class VampirBot extends TelegramLongPollingBot {
             long chatId = update.getCallbackQuery().getMessage().getChatId();
             int messageId = update.getCallbackQuery().getMessage().getMessageId();
             long userId = update.getCallbackQuery().getFrom().getId();
-            String queryId = update.getCallbackQuery().getId();
-
-            // YENİ EKLENDİ (ANTİ-DONMA SİSTEMİ): Telegram'a buton tıklandı bilgisini anında veriyoruz ki butonlar donmasın!
-            AnswerCallbackQuery answer = new AnswerCallbackQuery();
-            answer.setCallbackQueryId(queryId);
-            try { execute(answer); } catch (TelegramApiException e) { }
 
             if (!hayattaOlanlar.contains(userId) && !butonVerisi.startsWith("oy_ver")) {
                 return; 
@@ -280,16 +276,18 @@ public class VampirBot extends TelegramLongPollingBot {
             return;
         }
 
-        oyunBasladi = true;
+        oyunBasladi = true; // YENİ: Oyun başladığı için lobiyi kilitledik
 
         String baslangicMetni = "Güneş kan kırmızısı bir renkle batıyor ve son ışıklar da kayboluyor...\n" +
                                 "Artık kimseye güvenme.\n\n" +
-                                "🌙 Gece çöktü. Rollerinizi ruhunuza fısıldamak için özel mesajlarınıza geliyorum.";
+                                "🌙 Gece çöktü. Rollerinizi ruhunuza fısıldamak için evlerinize geliyorum.";
         resimGonder(grupChatId, RESIM_GECE, baslangicMetni);
 
         int kisiSayisi = oyuncular.size();
         
-        int vampirSayisi = Math.max(1, kisiSayisi / 4); 
+        // YENİ: Vampir sayısını oyuncu sayısına göre dinamik olarak belirliyoruz
+        int vampirSayisi = Math.max(1, kisiSayisi / 4); // Her 4 kişide 1 Vampir
+        // Örnek: 1-7 kişi = 1 Vampir, 8-11 kişi = 2 Vampir, 12+ kişi = 3 Vampir vb.
 
         List<String> rolHavuzu = new ArrayList<>();
         for (int i = 0; i < vampirSayisi; i++) {
@@ -301,17 +299,20 @@ public class VampirBot extends TelegramLongPollingBot {
 
         Collections.shuffle(rolHavuzu);
 
+        // Rolleri eşleştir
         int index = 0;
         for (Long id : oyuncular.keySet()) {
             roller.put(id, rolHavuzu.get(index));
             index++;
         }
 
+        // YENİ: Vampirleri tespit et (Birbirlerini tanımaları için)
         List<Long> vampirListesi = new ArrayList<>();
         for (Long id : roller.keySet()) {
             if (roller.get(id).equals("Vampir")) vampirListesi.add(id);
         }
 
+        // Oyunculara mesajlarını gönder
         for (Long id : oyuncular.keySet()) {
             String rol = roller.get(id);
             
@@ -371,6 +372,7 @@ public class VampirBot extends TelegramLongPollingBot {
 
         for (Long id : hayattaOlanlar) {
             String rol = roller.get(id);
+            // VampirKarari null ise hiçbir vampir henüz tıklamadı demektir
             if (rol.equals("Vampir") && vampirKarari == null) vampirTamam = false;
             if (rol.equals("Şifacı") && sifaciKarari == null) sifaciTamam = false;
             if (rol.equals("Gözcü") && gozcuKarari == null) gozcuTamam = false;
@@ -429,6 +431,7 @@ public class VampirBot extends TelegramLongPollingBot {
         }
     }
 
+    // YENİ: Toplantıda Ölü ve Canlı Listesi Oluşturucu
     private String oylamaMetniOlustur() {
         StringBuilder metin = new StringBuilder("⚖️ **KİMİ ASIYORUZ?**\nHainin kim olduğunu bulmak için tartışma başlasın! Aşağıdan oyunu kullan.\n\n");
         
@@ -533,7 +536,7 @@ public class VampirBot extends TelegramLongPollingBot {
 
         markupInline.setKeyboard(rowsInline);
         yeniMesaj.setReplyMarkup(markupInline);
-        try { execute(yeniMesaj); } catch (TelegramApiException e) { }
+        try { execute(yeniMesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
 
     private void oylamayiBitir() {
