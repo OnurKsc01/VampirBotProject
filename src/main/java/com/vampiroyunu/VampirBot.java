@@ -35,7 +35,6 @@ public class VampirBot extends TelegramLongPollingBot {
 
     private List<Long> hayattaOlanlar = new ArrayList<>();
     
-    // YENİ: Vampirlerin gece verdiği oyları tutan liste
     private Map<Long, Long> geceVampirOylari = new HashMap<>(); 
     private Long vampirKarari = null;
     private Long sifaciKarari = null; 
@@ -109,6 +108,20 @@ public class VampirBot extends TelegramLongPollingBot {
                 
                 oyunuBaslat(chatId);
             }
+            // YENİ EKLENEN YARDIM (HELP) KOMUTU
+            else if (mesajMetni.startsWith("/help")) {
+                String helpMetni = "📖 **Karanlık Köy Nasıl Oynanır?**\n\n" +
+                                   "Oyun gece ve gündüz olmak üzere iki evreden oluşur.\n\n" +
+                                   "🎭 **ROLLER:**\n" +
+                                   "🧛‍♂️ **Vampir:** Her gece birini avlar. Birden fazlaysalar kendi aralarında oylama yaparlar.\n" +
+                                   "💉 **Şifacı:** Her gece bir kişiyi (veya kendini) seçer ve onu ölümden kurtarır.\n" +
+                                   "👁️ **Gözcü:** Her gece birinin ruhuna bakar ve onun gerçek rolünü öğrenir.\n" +
+                                   "🧑‍🌾 **Köylü:** Özel gücü yoktur. Gündüzleri mantığını konuşturup vampirleri asmaya çalışır.\n\n" +
+                                   "🌙 **GECE:** Özel rolü olanlar bota özelden mesaj atıp (butonlarla) hedeflerini seçerler.\n" +
+                                   "☀️ **GÜNDÜZ:** Ölenler açıklanır. Kalanlar tartışıp aralarındaki haini bulmak için darağacı oylaması yaparlar.\n\n" +
+                                   "🏆 **ZAFER:** Vampirler sayıca köylülerle eşitlenirse Karanlık kazanır. Tüm vampirler asılırsa Köylüler kazanır!";
+                mesajGonder(chatId, helpMetni);
+            }
             else if (mesajMetni.startsWith("/iptal")) {
                 if (aktifGrupChatId != 0) {
                     if (geceZamanlayici != null) { geceZamanlayici.cancel(); geceZamanlayici = null; }
@@ -178,10 +191,7 @@ public class VampirBot extends TelegramLongPollingBot {
             if (butonVerisi.startsWith("avla_vampir_")) {
                 if (!geceAktif) return; 
                 long hedefId = Long.parseLong(butonVerisi.split("_")[2]);
-                
-                // YENİ: Artık anında hedef belirlemiyoruz, vampirin oyunu sandığa atıyoruz
                 geceVampirOylari.put(userId, hedefId);
-                
                 mesajiMetneCevir(chatId, messageId, "🩸 Oyunu kullandın. Konseyin kararı sabah belli olacak.");
                 geceBittiMiKontrolEt();
             }
@@ -307,7 +317,7 @@ public class VampirBot extends TelegramLongPollingBot {
             rolHavuzu.add("Vampir");
         }
         if (kisiSayisi >= 3) rolHavuzu.add("Şifacı"); 
-        if (kisiSayisi >= 6) rolHavuzu.add("Gözcü"); 
+        if (kisiSayisi >= 5) rolHavuzu.add("Gözcü"); 
         while (rolHavuzu.size() < kisiSayisi) rolHavuzu.add("Köylü");
 
         Collections.shuffle(rolHavuzu);
@@ -355,7 +365,6 @@ public class VampirBot extends TelegramLongPollingBot {
 
         for (Long id : hayattaOlanlar) {
             String rol = roller.get(id);
-            // YENİ METİN: Artık vampirlere ortak karar olduğu söyleniyor
             if (rol.equals("Vampir")) oyuncuSecimMenusuGonder(id, "avla_vampir", "Kimi avlıyorsun? (Vampirlerin çoğunluk oyu geçerlidir, eşitlikte rastgele kurban seçilir)");
             else if (rol.equals("Şifacı")) oyuncuSecimMenusuGonder(id, "koru_sifaci", "Karanlıkta kimin nöbetini tutacaksın?");
             else if (rol.equals("Gözcü")) oyuncuSecimMenusuGonder(id, "bak_gozcu", "Kimin ruhuna bakmak istiyorsun?");
@@ -383,7 +392,6 @@ public class VampirBot extends TelegramLongPollingBot {
 
         for (Long id : hayattaOlanlar) {
             String rol = roller.get(id);
-            // YENİ: Artık tek bir karar değil, her hayatta olan vampirin oy kullanıp kullanmadığına bakıyoruz
             if (rol.equals("Vampir") && !geceVampirOylari.containsKey(id)) vampirlerTamam = false;
             if (rol.equals("Şifacı") && sifaciKarari == null) sifaciTamam = false;
             if (rol.equals("Gözcü") && gozcuKarari == null) gozcuTamam = false;
@@ -401,12 +409,10 @@ public class VampirBot extends TelegramLongPollingBot {
             geceZamanlayici = null;
         }
 
-        // --- YENİ VAMPİR KONSEYİ HESAPLAMA SİSTEMİ ---
         vampirKarari = null;
         if (!geceVampirOylari.isEmpty()) {
             Map<Long, Integer> vampirHedefSayaci = new HashMap<>();
             
-            // Hangi hedefe kaç vampir oy vermiş hesapla
             for (Long hedef : geceVampirOylari.values()) {
                 vampirHedefSayaci.put(hedef, vampirHedefSayaci.getOrDefault(hedef, 0) + 1);
             }
@@ -414,24 +420,21 @@ public class VampirBot extends TelegramLongPollingBot {
             int maxOy = 0;
             List<Long> enCokOyAlanlar = new ArrayList<>();
 
-            // En çok oyu alan kişi(leri) bul
             for (Map.Entry<Long, Integer> entry : vampirHedefSayaci.entrySet()) {
                 if (entry.getValue() > maxOy) {
                     maxOy = entry.getValue();
                     enCokOyAlanlar.clear();
                     enCokOyAlanlar.add(entry.getKey());
                 } else if (entry.getValue() == maxOy) {
-                    enCokOyAlanlar.add(entry.getKey()); // Eşitlik durumu
+                    enCokOyAlanlar.add(entry.getKey()); 
                 }
             }
 
-            // Seçimi yap (Eğer oylar eşitse listeden rastgele biri kurban gider)
             if (!enCokOyAlanlar.isEmpty()) {
                 Collections.shuffle(enCokOyAlanlar);
                 vampirKarari = enCokOyAlanlar.get(0);
             }
         }
-        // ----------------------------------------------
 
         String sabahMetni = "☀️ Horozlar ötmeye başladı. Uzun ve korkunç bir gece sona erdi...\n\n";
         List<String> olenler = new ArrayList<>();
@@ -465,7 +468,6 @@ public class VampirBot extends TelegramLongPollingBot {
             }
         }
 
-        // Hafızayı diğer gece için temizle
         vampirKarari = null;
         geceVampirOylari.clear();
         sifaciKarari = null;
@@ -635,13 +637,28 @@ public class VampirBot extends TelegramLongPollingBot {
             else iyiler++;
         }
 
-        if (kotuler == 0) {
-            resimGonder(aktifGrupChatId, RESIM_KAZANAN_KOYLU, "🎉 **KÖYLÜLER KAZANDI!** 🎉\nKöydeki tüm karanlık güçler yok edildi. Artık geceleri rahatça uyuyabilirsiniz.");
-            aktifGrupChatId = 0; 
-            oyunBasladi = false;
-            return true;
-        } else if (kotuler >= iyiler) {
-            resimGonder(aktifGrupChatId, RESIM_KAZANAN_VAMPIR, "🦇 **KARANLIK KAZANDI!** 🦇\nMasumların sayısı karanlığı durdurmaya yetmedi. Köy tamamen Vampirlerin eline geçti...");
+        if (kotuler == 0 || kotuler >= iyiler) {
+            long bitenOyunChatId = aktifGrupChatId; // Sıfırlamadan önce chatId'yi kopyaladık
+            
+            if (kotuler == 0) {
+                resimGonder(bitenOyunChatId, RESIM_KAZANAN_KOYLU, "🎉 **KÖYLÜLER KAZANDI!** 🎉\nKöydeki tüm karanlık güçler yok edildi. Artık geceleri rahatça uyuyabilirsiniz.");
+            } else {
+                resimGonder(bitenOyunChatId, RESIM_KAZANAN_VAMPIR, "🦇 **KARANLIK KAZANDI!** 🦇\nMasumların sayısı karanlığı durdurmaya yetmedi. Köy tamamen Vampirlerin eline geçti...");
+            }
+
+            // YENİ EKLENEN: OYUN SONU LİSTESİ
+            StringBuilder sonListe = new StringBuilder("\n📜 **OYUN BİTTİ! İŞTE KÖYÜN GERÇEK YÜZÜ:**\n\n");
+            for (Map.Entry<Long, String> entry : roller.entrySet()) {
+                Long oyuncuId = entry.getKey();
+                String oyuncuIsmi = oyuncular.get(oyuncuId);
+                String rolu = entry.getValue();
+                
+                String durum = hayattaOlanlar.contains(oyuncuId) ? "🟢 (Hayatta)" : "☠️ (Ölü)";
+                sonListe.append(durum).append(" ").append(oyuncuIsmi).append(" ➔ **").append(rolu).append("**\n");
+            }
+            
+            mesajGonder(bitenOyunChatId, sonListe.toString());
+
             aktifGrupChatId = 0; 
             oyunBasladi = false;
             return true;
