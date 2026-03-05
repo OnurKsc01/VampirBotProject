@@ -285,9 +285,13 @@ public class VampirBot extends TelegramLongPollingBot {
 
         int kisiSayisi = oyuncular.size();
         
-        // YENİ: Vampir sayısını oyuncu sayısına göre dinamik olarak belirliyoruz
-        int vampirSayisi = Math.max(1, kisiSayisi / 4); // Her 4 kişide 1 Vampir
-        // Örnek: 1-7 kişi = 1 Vampir, 8-11 kişi = 2 Vampir, 12+ kişi = 3 Vampir vb.
+        // VAMPİR DENGESİ (Manuel Ayar) BURAYA EKLENDİ
+        int vampirSayisi = 1; // Varsayılan olarak 1 vampir
+        if (kisiSayisi >= 6 && kisiSayisi <= 9) {
+            vampirSayisi = 2; // 6 ile 9 kişi arasıysa 2 vampir
+        } else if (kisiSayisi >= 10) {
+            vampirSayisi = 3; // 10 kişi ve üzeri ise 3 vampir
+        }
 
         List<String> rolHavuzu = new ArrayList<>();
         for (int i = 0; i < vampirSayisi; i++) {
@@ -656,3 +660,4 @@ public class VampirBot extends TelegramLongPollingBot {
         try { execute(mesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
 }
+
