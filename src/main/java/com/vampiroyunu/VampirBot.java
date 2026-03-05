@@ -1,6 +1,7 @@
 package com.vampiroyunu;
 
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageCaption;
@@ -28,12 +29,14 @@ public class VampirBot extends TelegramLongPollingBot {
     private long aktifGrupChatId = 0;
     private int aktifLobiMesajId = 0;
 
-    // --- KİLİT MEKANİZMALARI ---
     private boolean geceAktif = false;
     private boolean oylamaAktif = false;
-    private boolean oyunBasladi = false; // YENİ: Oyun başladığında komutları kilitlemek için
+    private boolean oyunBasladi = false; 
 
     private List<Long> hayattaOlanlar = new ArrayList<>();
+    
+    // YENİ: Vampirlerin gece verdiği oyları tutan liste
+    private Map<Long, Long> geceVampirOylari = new HashMap<>(); 
     private Long vampirKarari = null;
     private Long sifaciKarari = null; 
     private Long gozcuKarari = null; 
@@ -50,8 +53,7 @@ public class VampirBot extends TelegramLongPollingBot {
     private final String RESIM_SABAH_TEMIZ = "https://i.ibb.co/gLJ4BtPW/Ekran-g-r-nt-s-2026-03-01-171702.png";
     private final String RESIM_IDAM = "https://i.ibb.co/5XKHV7Dp/idam.jpg";
     
-    // YENİ: Köylü kazanma görseli URL yapısı bozuk olduğu için Telegram engelliyordu, temizlendi.
-    private final String RESIM_KAZANAN_KOYLU = "https://i.ibb.co/0y7YVr4k/Ekran-g-r-nt-s-2026-03-01-172054.png";
+    private final String RESIM_KAZANAN_KOYLU = "https://dummyimage.com/800x600/3abf2e/ffffff.jpg&text=Zafer:+Koyluler+Kazandi";
     private final String RESIM_KAZANAN_VAMPIR = "https://i.ibb.co/wZbGnFVQ/Ekran-g-r-nt-s-2026-03-01-173520.png";
 
     private final String RESIM_ROL_VAMPIR = "https://i.ibb.co/8gvVTXjS/Ekran-g-r-nt-s-2026-03-01-173803.png";
@@ -78,7 +80,6 @@ public class VampirBot extends TelegramLongPollingBot {
             String isim = update.getMessage().getFrom().getFirstName();
 
             if (mesajMetni.startsWith("/lobi")) {
-                // YENİ: Aktif bir lobi veya oyun varsa engelle
                 if (aktifGrupChatId != 0) {
                     mesajGonder(chatId, "⚠️ Zaten açık bir lobi veya devam eden bir oyun var! Yeni lobi kurmak için önce /iptal yazmalısınız.");
                     return;
@@ -87,6 +88,7 @@ public class VampirBot extends TelegramLongPollingBot {
                 oyuncular.clear();
                 roller.clear();
                 vampirKarari = null;
+                geceVampirOylari.clear();
                 sifaciKarari = null;
                 gozcuKarari = null;
                 geceAktif = false;
@@ -96,7 +98,6 @@ public class VampirBot extends TelegramLongPollingBot {
                 lobiMesajiniGonder(chatId);
             } 
             else if (mesajMetni.startsWith("/basla")) {
-                // YENİ: Oyun zaten başladıysa veya lobi yoksa engelle
                 if (aktifGrupChatId == 0) {
                     mesajGonder(chatId, "⚠️ Önce /lobi yazarak bir oyun kurmalısınız!");
                     return;
@@ -118,6 +119,7 @@ public class VampirBot extends TelegramLongPollingBot {
                     hayattaOlanlar.clear();
                     oylar.clear();
                     vampirKarari = null;
+                    geceVampirOylari.clear();
                     sifaciKarari = null;
                     gozcuKarari = null;
                     geceAktif = false;
@@ -163,6 +165,11 @@ public class VampirBot extends TelegramLongPollingBot {
             long chatId = update.getCallbackQuery().getMessage().getChatId();
             int messageId = update.getCallbackQuery().getMessage().getMessageId();
             long userId = update.getCallbackQuery().getFrom().getId();
+            String queryId = update.getCallbackQuery().getId();
+
+            AnswerCallbackQuery answer = new AnswerCallbackQuery();
+            answer.setCallbackQueryId(queryId);
+            try { execute(answer); } catch (TelegramApiException e) { }
 
             if (!hayattaOlanlar.contains(userId) && !butonVerisi.startsWith("oy_ver")) {
                 return; 
@@ -171,8 +178,11 @@ public class VampirBot extends TelegramLongPollingBot {
             if (butonVerisi.startsWith("avla_vampir_")) {
                 if (!geceAktif) return; 
                 long hedefId = Long.parseLong(butonVerisi.split("_")[2]);
-                vampirKarari = hedefId;
-                mesajiMetneCevir(chatId, messageId, "🩸 Karar verildi. Hedefin sabah belli olacak.");
+                
+                // YENİ: Artık anında hedef belirlemiyoruz, vampirin oyunu sandığa atıyoruz
+                geceVampirOylari.put(userId, hedefId);
+                
+                mesajiMetneCevir(chatId, messageId, "🩸 Oyunu kullandın. Konseyin kararı sabah belli olacak.");
                 geceBittiMiKontrolEt();
             }
             else if (butonVerisi.startsWith("koru_sifaci_")) {
@@ -266,17 +276,17 @@ public class VampirBot extends TelegramLongPollingBot {
                 yaziGuncelle.setText(yeniMetin);
                 yaziGuncelle.setReplyMarkup(markupInline);
                 execute(yaziGuncelle);
-            } catch (TelegramApiException ex) { ex.printStackTrace(); }
+            } catch (TelegramApiException ex) { }
         }
     }
 
     private void oyunuBaslat(long grupChatId) {
-        if (oyuncular.size() < 1) { 
-            mesajGonder(grupChatId, "Köy meydanı bomboş... Başlamak için yeterli kişi yok! Lobi hala açık, bekliyoruz...");
+        if (oyuncular.size() < 3) { 
+            mesajGonder(grupChatId, "⚠️ Meydan yeterince kalabalık değil! Oynamak için en az 3 kişi olmalısınız. Bekliyoruz...");
             return;
         }
 
-        oyunBasladi = true; // YENİ: Oyun başladığı için lobiyi kilitledik
+        oyunBasladi = true;
 
         String baslangicMetni = "Güneş kan kırmızısı bir renkle batıyor ve son ışıklar da kayboluyor...\n" +
                                 "Artık kimseye güvenme.\n\n" +
@@ -285,12 +295,11 @@ public class VampirBot extends TelegramLongPollingBot {
 
         int kisiSayisi = oyuncular.size();
         
-        // VAMPİR DENGESİ (Manuel Ayar) BURAYA EKLENDİ
-        int vampirSayisi = 1; // Varsayılan olarak 1 vampir
-        if (kisiSayisi >= 6 && kisiSayisi <= 9) {
-            vampirSayisi = 2; // 6 ile 9 kişi arasıysa 2 vampir
-        } else if (kisiSayisi >= 10) {
-            vampirSayisi = 3; // 10 kişi ve üzeri ise 3 vampir
+        int vampirSayisi = 1; 
+        if (kisiSayisi >= 7 && kisiSayisi <= 11) {
+            vampirSayisi = 2; 
+        } else if (kisiSayisi >= 12) {
+            vampirSayisi = 3; 
         }
 
         List<String> rolHavuzu = new ArrayList<>();
@@ -298,25 +307,22 @@ public class VampirBot extends TelegramLongPollingBot {
             rolHavuzu.add("Vampir");
         }
         if (kisiSayisi >= 3) rolHavuzu.add("Şifacı"); 
-        if (kisiSayisi >= 4) rolHavuzu.add("Gözcü"); 
+        if (kisiSayisi >= 6) rolHavuzu.add("Gözcü"); 
         while (rolHavuzu.size() < kisiSayisi) rolHavuzu.add("Köylü");
 
         Collections.shuffle(rolHavuzu);
 
-        // Rolleri eşleştir
         int index = 0;
         for (Long id : oyuncular.keySet()) {
             roller.put(id, rolHavuzu.get(index));
             index++;
         }
 
-        // YENİ: Vampirleri tespit et (Birbirlerini tanımaları için)
         List<Long> vampirListesi = new ArrayList<>();
         for (Long id : roller.keySet()) {
             if (roller.get(id).equals("Vampir")) vampirListesi.add(id);
         }
 
-        // Oyunculara mesajlarını gönder
         for (Long id : oyuncular.keySet()) {
             String rol = roller.get(id);
             
@@ -349,7 +355,8 @@ public class VampirBot extends TelegramLongPollingBot {
 
         for (Long id : hayattaOlanlar) {
             String rol = roller.get(id);
-            if (rol.equals("Vampir")) oyuncuSecimMenusuGonder(id, "avla_vampir", "Kimi avlıyorsun? (Takımından ilk tıklayan kararı verir)");
+            // YENİ METİN: Artık vampirlere ortak karar olduğu söyleniyor
+            if (rol.equals("Vampir")) oyuncuSecimMenusuGonder(id, "avla_vampir", "Kimi avlıyorsun? (Vampirlerin çoğunluk oyu geçerlidir, eşitlikte rastgele kurban seçilir)");
             else if (rol.equals("Şifacı")) oyuncuSecimMenusuGonder(id, "koru_sifaci", "Karanlıkta kimin nöbetini tutacaksın?");
             else if (rol.equals("Gözcü")) oyuncuSecimMenusuGonder(id, "bak_gozcu", "Kimin ruhuna bakmak istiyorsun?");
         }
@@ -370,19 +377,19 @@ public class VampirBot extends TelegramLongPollingBot {
     private void geceBittiMiKontrolEt() {
         if (!geceAktif) return;
 
-        boolean vampirTamam = true;
+        boolean vampirlerTamam = true;
         boolean sifaciTamam = true;
         boolean gozcuTamam = true;
 
         for (Long id : hayattaOlanlar) {
             String rol = roller.get(id);
-            // VampirKarari null ise hiçbir vampir henüz tıklamadı demektir
-            if (rol.equals("Vampir") && vampirKarari == null) vampirTamam = false;
+            // YENİ: Artık tek bir karar değil, her hayatta olan vampirin oy kullanıp kullanmadığına bakıyoruz
+            if (rol.equals("Vampir") && !geceVampirOylari.containsKey(id)) vampirlerTamam = false;
             if (rol.equals("Şifacı") && sifaciKarari == null) sifaciTamam = false;
             if (rol.equals("Gözcü") && gozcuKarari == null) gozcuTamam = false;
         }
 
-        if (vampirTamam && sifaciTamam && gozcuTamam) {
+        if (vampirlerTamam && sifaciTamam && gozcuTamam) {
             geceAktif = false;
             gunduzuBaslat();
         }
@@ -393,6 +400,38 @@ public class VampirBot extends TelegramLongPollingBot {
             geceZamanlayici.cancel();
             geceZamanlayici = null;
         }
+
+        // --- YENİ VAMPİR KONSEYİ HESAPLAMA SİSTEMİ ---
+        vampirKarari = null;
+        if (!geceVampirOylari.isEmpty()) {
+            Map<Long, Integer> vampirHedefSayaci = new HashMap<>();
+            
+            // Hangi hedefe kaç vampir oy vermiş hesapla
+            for (Long hedef : geceVampirOylari.values()) {
+                vampirHedefSayaci.put(hedef, vampirHedefSayaci.getOrDefault(hedef, 0) + 1);
+            }
+
+            int maxOy = 0;
+            List<Long> enCokOyAlanlar = new ArrayList<>();
+
+            // En çok oyu alan kişi(leri) bul
+            for (Map.Entry<Long, Integer> entry : vampirHedefSayaci.entrySet()) {
+                if (entry.getValue() > maxOy) {
+                    maxOy = entry.getValue();
+                    enCokOyAlanlar.clear();
+                    enCokOyAlanlar.add(entry.getKey());
+                } else if (entry.getValue() == maxOy) {
+                    enCokOyAlanlar.add(entry.getKey()); // Eşitlik durumu
+                }
+            }
+
+            // Seçimi yap (Eğer oylar eşitse listeden rastgele biri kurban gider)
+            if (!enCokOyAlanlar.isEmpty()) {
+                Collections.shuffle(enCokOyAlanlar);
+                vampirKarari = enCokOyAlanlar.get(0);
+            }
+        }
+        // ----------------------------------------------
 
         String sabahMetni = "☀️ Horozlar ötmeye başladı. Uzun ve korkunç bir gece sona erdi...\n\n";
         List<String> olenler = new ArrayList<>();
@@ -426,7 +465,9 @@ public class VampirBot extends TelegramLongPollingBot {
             }
         }
 
+        // Hafızayı diğer gece için temizle
         vampirKarari = null;
+        geceVampirOylari.clear();
         sifaciKarari = null;
         gozcuKarari = null;
 
@@ -435,7 +476,6 @@ public class VampirBot extends TelegramLongPollingBot {
         }
     }
 
-    // YENİ: Toplantıda Ölü ve Canlı Listesi Oluşturucu
     private String oylamaMetniOlustur() {
         StringBuilder metin = new StringBuilder("⚖️ **KİMİ ASIYORUZ?**\nHainin kim olduğunu bulmak için tartışma başlasın! Aşağıdan oyunu kullan.\n\n");
         
@@ -540,7 +580,7 @@ public class VampirBot extends TelegramLongPollingBot {
 
         markupInline.setKeyboard(rowsInline);
         yeniMesaj.setReplyMarkup(markupInline);
-        try { execute(yeniMesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
+        try { execute(yeniMesaj); } catch (TelegramApiException e) { }
     }
 
     private void oylamayiBitir() {
@@ -608,8 +648,6 @@ public class VampirBot extends TelegramLongPollingBot {
         }
         return false;
     }
-
-    // --- YARDIMCI METODLAR ---
     
     private void resimGonder(long chatId, String resimUrl, String metin) {
         SendPhoto fotograf = new SendPhoto();
@@ -660,4 +698,3 @@ public class VampirBot extends TelegramLongPollingBot {
         try { execute(mesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
 }
-
