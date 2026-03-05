@@ -306,9 +306,9 @@ public class VampirBot extends TelegramLongPollingBot {
         int kisiSayisi = oyuncular.size();
         
         int vampirSayisi = 1; 
-        if (kisiSayisi >= 7 && kisiSayisi <= 11) {
+        if (kisiSayisi >= 8 && kisiSayisi <= 14) {
             vampirSayisi = 2; 
-        } else if (kisiSayisi >= 12) {
+        } else if (kisiSayisi >= 15) {
             vampirSayisi = 3; 
         }
 
@@ -715,3 +715,4 @@ public class VampirBot extends TelegramLongPollingBot {
         try { execute(mesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
 }
+
