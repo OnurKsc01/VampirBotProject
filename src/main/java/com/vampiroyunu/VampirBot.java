@@ -108,7 +108,6 @@ public class VampirBot extends TelegramLongPollingBot {
                 
                 oyunuBaslat(chatId);
             }
-            // YENİ EKLENEN YARDIM (HELP) KOMUTU
             else if (mesajMetni.startsWith("/help")) {
                 String helpMetni = "📖 **Karanlık Köy Nasıl Oynanır?**\n\n" +
                                    "Oyun gece ve gündüz olmak üzere iki evreden oluşur.\n\n" +
@@ -193,6 +192,16 @@ public class VampirBot extends TelegramLongPollingBot {
                 long hedefId = Long.parseLong(butonVerisi.split("_")[2]);
                 geceVampirOylari.put(userId, hedefId);
                 mesajiMetneCevir(chatId, messageId, "🩸 Oyunu kullandın. Konseyin kararı sabah belli olacak.");
+                
+                // YENİ: Diğer vampirlere oyu bildir
+                String oyVerenIsim = oyuncular.get(userId);
+                String hedefIsim = oyuncular.get(hedefId);
+                for (Long hayattakiId : hayattaOlanlar) {
+                    if (roller.get(hayattakiId).equals("Vampir") && !hayattakiId.equals(userId)) {
+                        mesajGonder(hayattakiId, "🦇 **Karanlık İletişim:**\nKardeşin **" + oyVerenIsim + "**, oyunu **" + hedefIsim + "** için kullandı!");
+                    }
+                }
+                
                 geceBittiMiKontrolEt();
             }
             else if (butonVerisi.startsWith("koru_sifaci_")) {
@@ -306,9 +315,9 @@ public class VampirBot extends TelegramLongPollingBot {
         int kisiSayisi = oyuncular.size();
         
         int vampirSayisi = 1; 
-        if (kisiSayisi >= 8 && kisiSayisi <= 14) {
+        if (kisiSayisi >= 6 && kisiSayisi <= 9) {
             vampirSayisi = 2; 
-        } else if (kisiSayisi >= 15) {
+        } else if (kisiSayisi >= 10) {
             vampirSayisi = 3; 
         }
 
@@ -317,7 +326,7 @@ public class VampirBot extends TelegramLongPollingBot {
             rolHavuzu.add("Vampir");
         }
         if (kisiSayisi >= 3) rolHavuzu.add("Şifacı"); 
-        if (kisiSayisi >= 5) rolHavuzu.add("Gözcü"); 
+        if (kisiSayisi >= 4) rolHavuzu.add("Gözcü"); 
         while (rolHavuzu.size() < kisiSayisi) rolHavuzu.add("Köylü");
 
         Collections.shuffle(rolHavuzu);
@@ -638,7 +647,7 @@ public class VampirBot extends TelegramLongPollingBot {
         }
 
         if (kotuler == 0 || kotuler >= iyiler) {
-            long bitenOyunChatId = aktifGrupChatId; // Sıfırlamadan önce chatId'yi kopyaladık
+            long bitenOyunChatId = aktifGrupChatId; 
             
             if (kotuler == 0) {
                 resimGonder(bitenOyunChatId, RESIM_KAZANAN_KOYLU, "🎉 **KÖYLÜLER KAZANDI!** 🎉\nKöydeki tüm karanlık güçler yok edildi. Artık geceleri rahatça uyuyabilirsiniz.");
@@ -646,7 +655,6 @@ public class VampirBot extends TelegramLongPollingBot {
                 resimGonder(bitenOyunChatId, RESIM_KAZANAN_VAMPIR, "🦇 **KARANLIK KAZANDI!** 🦇\nMasumların sayısı karanlığı durdurmaya yetmedi. Köy tamamen Vampirlerin eline geçti...");
             }
 
-            // YENİ EKLENEN: OYUN SONU LİSTESİ
             StringBuilder sonListe = new StringBuilder("\n📜 **OYUN BİTTİ! İŞTE KÖYÜN GERÇEK YÜZÜ:**\n\n");
             for (Map.Entry<Long, String> entry : roller.entrySet()) {
                 Long oyuncuId = entry.getKey();
@@ -715,5 +723,3 @@ public class VampirBot extends TelegramLongPollingBot {
         try { execute(mesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
 }
-
-
