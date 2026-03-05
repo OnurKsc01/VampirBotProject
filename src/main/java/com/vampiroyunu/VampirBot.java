@@ -84,6 +84,9 @@ public class VampirBot extends TelegramLongPollingBot {
                     return;
                 }
 
+                System.out.println("\n[GİZLİ LOG] ========================================");
+                System.out.println("[GİZLİ LOG] YENİ BİR LOBİ OLUŞTURULDU! (Grup ID: " + chatId + ")");
+
                 oyuncular.clear();
                 roller.clear();
                 vampirKarari = null;
@@ -106,6 +109,7 @@ public class VampirBot extends TelegramLongPollingBot {
                     return;
                 }
                 
+                System.out.println("[GİZLİ LOG] OYUN BAŞLATILIYOR...");
                 oyunuBaslat(chatId);
             }
             else if (mesajMetni.startsWith("/help")) {
@@ -123,6 +127,7 @@ public class VampirBot extends TelegramLongPollingBot {
             }
             else if (mesajMetni.startsWith("/iptal")) {
                 if (aktifGrupChatId != 0) {
+                    System.out.println("[GİZLİ LOG] OYUN İPTAL EDİLDİ!");
                     if (geceZamanlayici != null) { geceZamanlayici.cancel(); geceZamanlayici = null; }
                     if (gunduzZamanlayici != null) { gunduzZamanlayici.cancel(); gunduzZamanlayici = null; }
                     
@@ -157,6 +162,7 @@ public class VampirBot extends TelegramLongPollingBot {
                 
                 if (!oyuncular.containsKey(userId)) {
                     oyuncular.put(userId, isim);
+                    System.out.println("[GİZLİ LOG - LOBİ] " + isim + " oyuna katıldı. Toplam: " + oyuncular.size() + " kişi.");
                     mesajGonder(chatId, "Karanlık köye giriş yaptın! Gruba dönebilirsin.");
                     
                     String yeniMetin = "Karanlık Çöküyor... Köy Meydanında Toplanıyoruz.\n\nKatılanlar (" + oyuncular.size() + " kişi):\n";
@@ -191,9 +197,9 @@ public class VampirBot extends TelegramLongPollingBot {
                 if (!geceAktif) return; 
                 long hedefId = Long.parseLong(butonVerisi.split("_")[2]);
                 geceVampirOylari.put(userId, hedefId);
+                System.out.println("[GİZLİ LOG - GECE] 🧛‍♂️ Vampir " + oyuncular.get(userId) + " -> " + oyuncular.get(hedefId) + " kişisine oy verdi.");
                 mesajiMetneCevir(chatId, messageId, "🩸 Oyunu kullandın. Konseyin kararı sabah belli olacak.");
                 
-                // YENİ: Diğer vampirlere oyu bildir
                 String oyVerenIsim = oyuncular.get(userId);
                 String hedefIsim = oyuncular.get(hedefId);
                 for (Long hayattakiId : hayattaOlanlar) {
@@ -208,6 +214,7 @@ public class VampirBot extends TelegramLongPollingBot {
                 if (!geceAktif) return;
                 long hedefId = Long.parseLong(butonVerisi.split("_")[2]);
                 sifaciKarari = hedefId;
+                System.out.println("[GİZLİ LOG - GECE] 💉 Şifacı " + oyuncular.get(userId) + " -> " + oyuncular.get(hedefId) + " kişisini korudu.");
                 mesajiMetneCevir(chatId, messageId, "💉 Şifa çantanı hazırladın. Kararın sabah etkisini gösterecek.");
                 geceBittiMiKontrolEt();
             }
@@ -215,6 +222,7 @@ public class VampirBot extends TelegramLongPollingBot {
                 if (!geceAktif) return;
                 long hedefId = Long.parseLong(butonVerisi.split("_")[2]);
                 gozcuKarari = hedefId;
+                System.out.println("[GİZLİ LOG - GECE] 👁️ Gözcü " + oyuncular.get(userId) + " -> " + oyuncular.get(hedefId) + " kişisini gözetledi.");
                 mesajiMetneCevir(chatId, messageId, "👁️ Gözlerini kapattın... Raporun gün doğduğunda ruhuna fısıldanacak.");
                 geceBittiMiKontrolEt();
             }
@@ -223,6 +231,9 @@ public class VampirBot extends TelegramLongPollingBot {
                 
                 long hedefId = Long.parseLong(butonVerisi.replace("oy_ver_", ""));
                 oylar.put(userId, hedefId); 
+                
+                String kimeOyVerdi = (hedefId == -1) ? "BOŞ OY" : oyuncular.get(hedefId);
+                System.out.println("[GİZLİ LOG - GÜNDÜZ OYU] 🗳️ " + oyuncular.get(userId) + " -> " + kimeOyVerdi);
                 
                 oylamaMesajiniGuncelle(); 
 
@@ -315,9 +326,9 @@ public class VampirBot extends TelegramLongPollingBot {
         int kisiSayisi = oyuncular.size();
         
         int vampirSayisi = 1; 
-        if (kisiSayisi >= 6 && kisiSayisi <= 9) {
+        if (kisiSayisi >= 8 && kisiSayisi <= 14) {
             vampirSayisi = 2; 
-        } else if (kisiSayisi >= 10) {
+        } else if (kisiSayisi >= 15) {
             vampirSayisi = 3; 
         }
 
@@ -326,14 +337,17 @@ public class VampirBot extends TelegramLongPollingBot {
             rolHavuzu.add("Vampir");
         }
         if (kisiSayisi >= 3) rolHavuzu.add("Şifacı"); 
-        if (kisiSayisi >= 4) rolHavuzu.add("Gözcü"); 
+        if (kisiSayisi >= 5) rolHavuzu.add("Gözcü"); 
         while (rolHavuzu.size() < kisiSayisi) rolHavuzu.add("Köylü");
 
         Collections.shuffle(rolHavuzu);
 
+        System.out.println("[GİZLİ LOG - DAĞITILAN ROLLER]");
         int index = 0;
         for (Long id : oyuncular.keySet()) {
-            roller.put(id, rolHavuzu.get(index));
+            String cekilenRol = rolHavuzu.get(index);
+            roller.put(id, cekilenRol);
+            System.out.println(" - " + oyuncular.get(id) + " : " + cekilenRol);
             index++;
         }
 
@@ -370,6 +384,7 @@ public class VampirBot extends TelegramLongPollingBot {
 
     private void geceyiBaslat(long grupChatId) {
         geceAktif = true; 
+        System.out.println("[GİZLİ LOG] --- GECE BAŞLADI ---");
         mesajGonder(grupChatId, "⏳ **Gece 90 saniye sürecek.** Uyanık olanlar seçimlerini yapsın.");
 
         for (Long id : hayattaOlanlar) {
@@ -385,6 +400,7 @@ public class VampirBot extends TelegramLongPollingBot {
             public void run() {
                 if (geceAktif) { 
                     geceAktif = false;
+                    System.out.println("[GİZLİ LOG] Süre doldu, gece otomatik bitiyor.");
                     mesajGonder(aktifGrupChatId, "⏳ Gece süresi doldu! AFK kalanların hakları yandı...");
                     gunduzuBaslat(); 
                 }
@@ -408,6 +424,7 @@ public class VampirBot extends TelegramLongPollingBot {
 
         if (vampirlerTamam && sifaciTamam && gozcuTamam) {
             geceAktif = false;
+            System.out.println("[GİZLİ LOG] Herkes seçimini yaptı, gece erken bitiyor.");
             gunduzuBaslat();
         }
     }
@@ -417,6 +434,8 @@ public class VampirBot extends TelegramLongPollingBot {
             geceZamanlayici.cancel();
             geceZamanlayici = null;
         }
+
+        System.out.println("[GİZLİ LOG] --- SABAH OLDU ---");
 
         vampirKarari = null;
         if (!geceVampirOylari.isEmpty()) {
@@ -444,6 +463,10 @@ public class VampirBot extends TelegramLongPollingBot {
                 vampirKarari = enCokOyAlanlar.get(0);
             }
         }
+        
+        System.out.println("[GİZLİ LOG - SONUÇLAR]");
+        System.out.println("Vampirlerin Nihai Hedefi: " + (vampirKarari != null ? oyuncular.get(vampirKarari) : "Kimse"));
+        System.out.println("Şifacının Koruduğu Kişi: " + (sifaciKarari != null ? oyuncular.get(sifaciKarari) : "Kimse"));
 
         String sabahMetni = "☀️ Horozlar ötmeye başladı. Uzun ve korkunç bir gece sona erdi...\n\n";
         List<String> olenler = new ArrayList<>();
@@ -452,6 +475,9 @@ public class VampirBot extends TelegramLongPollingBot {
             if (!vampirKarari.equals(sifaciKarari)) { 
                 hayattaOlanlar.remove(vampirKarari);
                 olenler.add(oyuncular.get(vampirKarari) + " (Boynunda diş izleri var...)");
+                System.out.println("[GİZLİ LOG] " + oyuncular.get(vampirKarari) + " VAMPİRLER TARAFINDAN ÖLDÜRÜLDÜ!");
+            } else {
+                System.out.println("[GİZLİ LOG] " + oyuncular.get(vampirKarari) + " VURULDU AMA ŞİFACI TARAFINDAN KURTARILDI!");
             }
         }
 
@@ -522,6 +548,7 @@ public class VampirBot extends TelegramLongPollingBot {
     private void oylamayiBaslat() {
         oylar.clear();
         oylamaAktif = true; 
+        System.out.println("[GİZLİ LOG] --- GÜNDÜZ OYLAMASI BAŞLADI ---");
         
         SendMessage mesaj = new SendMessage();
         mesaj.setChatId(String.valueOf(aktifGrupChatId));
@@ -560,6 +587,7 @@ public class VampirBot extends TelegramLongPollingBot {
             public void run() {
                 if (oylamaAktif) { 
                     oylamaAktif = false;
+                    System.out.println("[GİZLİ LOG] Oylama süresi doldu.");
                     oylamayiBitir();
                 }
             }
@@ -616,11 +644,14 @@ public class VampirBot extends TelegramLongPollingBot {
             }
         }
 
+        System.out.println("[GİZLİ LOG - İDAM SONUCU]");
         if (enCokOyAlan == null || beraberlikVarMi || enCokOyAlan == -1) {
+            System.out.println("Karar: KİMSE ASILMADI.");
             mesajGonder(aktifGrupChatId, "Köy kararsız kaldı... Meydanda kimse ipe götürülmedi. Herkes korku içinde evlerine dağılıyor.");
         } else {
             hayattaOlanlar.remove(enCokOyAlan);
             String asilanRol = roller.get(enCokOyAlan);
+            System.out.println("Karar: " + oyuncular.get(enCokOyAlan) + " ASILDI! (Gerçek Rolü: " + asilanRol + ")");
             resimGonder(aktifGrupChatId, RESIM_IDAM, "🪢 Halk kararını verdi!\n**" + oyuncular.get(enCokOyAlan) + "** darağacına götürüldü ve asıldı.\n\nGerçek kimliği: **" + asilanRol + "**");
         }
 
@@ -649,9 +680,13 @@ public class VampirBot extends TelegramLongPollingBot {
         if (kotuler == 0 || kotuler >= iyiler) {
             long bitenOyunChatId = aktifGrupChatId; 
             
+            System.out.println("[GİZLİ LOG] ========================================");
+            System.out.println("[GİZLİ LOG] OYUN BİTTİ!");
             if (kotuler == 0) {
+                System.out.println("[GİZLİ LOG] KAZANAN: KÖYLÜLER");
                 resimGonder(bitenOyunChatId, RESIM_KAZANAN_KOYLU, "🎉 **KÖYLÜLER KAZANDI!** 🎉\nKöydeki tüm karanlık güçler yok edildi. Artık geceleri rahatça uyuyabilirsiniz.");
             } else {
+                System.out.println("[GİZLİ LOG] KAZANAN: VAMPİRLER");
                 resimGonder(bitenOyunChatId, RESIM_KAZANAN_VAMPIR, "🦇 **KARANLIK KAZANDI!** 🦇\nMasumların sayısı karanlığı durdurmaya yetmedi. Köy tamamen Vampirlerin eline geçti...");
             }
 
