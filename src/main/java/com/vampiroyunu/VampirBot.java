@@ -3,10 +3,7 @@ package com.vampiroyunu;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageCaption;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
-import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -52,7 +49,7 @@ public class VampirBot extends TelegramLongPollingBot {
     private final String RESIM_SABAH_TEMIZ = "https://i.ibb.co/gLJ4BtPW/Ekran-g-r-nt-s-2026-03-01-171702.png";
     private final String RESIM_IDAM = "https://i.ibb.co/5XKHV7Dp/idam.jpg";
     
-    private final String RESIM_KAZANAN_KOYLU = "https://i.ibb.co/0y7YVr4k/Ekran-g-r-nt-s-2026-03-01-172054.png";
+    private final String RESIM_KAZANAN_KOYLU = "https://dummyimage.com/800x600/3abf2e/ffffff.jpg&text=Zafer:+Koyluler+Kazandi";
     private final String RESIM_KAZANAN_VAMPIR = "https://i.ibb.co/wZbGnFVQ/Ekran-g-r-nt-s-2026-03-01-173520.png";
 
     private final String RESIM_ROL_VAMPIR = "https://i.ibb.co/8gvVTXjS/Ekran-g-r-nt-s-2026-03-01-173803.png";
@@ -197,6 +194,7 @@ public class VampirBot extends TelegramLongPollingBot {
                 if (!geceAktif) return; 
                 long hedefId = Long.parseLong(butonVerisi.split("_")[2]);
                 geceVampirOylari.put(userId, hedefId);
+                
                 System.out.println("[GİZLİ LOG - GECE] 🧛‍♂️ Vampir " + oyuncular.get(userId) + " -> " + oyuncular.get(hedefId) + " kişisine oy verdi.");
                 mesajiMetneCevir(chatId, messageId, "🩸 Oyunu kullandın. Konseyin kararı sabah belli olacak.");
                 
@@ -207,7 +205,6 @@ public class VampirBot extends TelegramLongPollingBot {
                         mesajGonder(hayattakiId, "🦇 **Karanlık İletişim:**\nKardeşin **" + oyVerenIsim + "**, oyunu **" + hedefIsim + "** için kullandı!");
                     }
                 }
-                
                 geceBittiMiKontrolEt();
             }
             else if (butonVerisi.startsWith("koru_sifaci_")) {
@@ -259,25 +256,16 @@ public class VampirBot extends TelegramLongPollingBot {
         rowsInline.add(rowInline);
         markupInline.setKeyboard(rowsInline);
 
+        SendMessage mesaj = new SendMessage();
+        mesaj.setChatId(String.valueOf(chatId));
+        mesaj.setText(htmlFormatla(lobiMetni, RESIM_LOBI_KANLI_AY));
+        mesaj.setParseMode("HTML");
+        mesaj.setReplyMarkup(markupInline);
+
         try {
-            SendPhoto fotograf = new SendPhoto();
-            fotograf.setChatId(String.valueOf(chatId));
-            fotograf.setPhoto(new InputFile(RESIM_LOBI_KANLI_AY));
-            fotograf.setCaption(lobiMetni);
-            fotograf.setReplyMarkup(markupInline);
-            
-            Message gonderilenMesaj = execute(fotograf);
+            Message gonderilenMesaj = execute(mesaj);
             aktifLobiMesajId = gonderilenMesaj.getMessageId();
-        } catch (TelegramApiException e) { 
-            SendMessage duzMesaj = new SendMessage();
-            duzMesaj.setChatId(String.valueOf(chatId));
-            duzMesaj.setText(lobiMetni);
-            duzMesaj.setReplyMarkup(markupInline);
-            try {
-                Message gonderilenMesaj = execute(duzMesaj);
-                aktifLobiMesajId = gonderilenMesaj.getMessageId();
-            } catch (TelegramApiException ex) { ex.printStackTrace(); }
-        }
+        } catch (TelegramApiException e) { e.printStackTrace(); }
     }
 
     private void lobiMesajiniGuncelle(long chatId, int messageId, String yeniMetin) {
@@ -291,23 +279,16 @@ public class VampirBot extends TelegramLongPollingBot {
         rowsInline.add(rowInline);
         markupInline.setKeyboard(rowsInline);
 
+        EditMessageText yaziGuncelle = new EditMessageText();
+        yaziGuncelle.setChatId(String.valueOf(chatId));
+        yaziGuncelle.setMessageId(messageId);
+        yaziGuncelle.setText(htmlFormatla(yeniMetin, RESIM_LOBI_KANLI_AY));
+        yaziGuncelle.setParseMode("HTML");
+        yaziGuncelle.setReplyMarkup(markupInline);
+
         try {
-            EditMessageCaption fotografGuncelle = new EditMessageCaption();
-            fotografGuncelle.setChatId(String.valueOf(chatId));
-            fotografGuncelle.setMessageId(messageId);
-            fotografGuncelle.setCaption(yeniMetin);
-            fotografGuncelle.setReplyMarkup(markupInline);
-            execute(fotografGuncelle);
-        } catch (TelegramApiException e) { 
-            try {
-                EditMessageText yaziGuncelle = new EditMessageText();
-                yaziGuncelle.setChatId(String.valueOf(chatId));
-                yaziGuncelle.setMessageId(messageId);
-                yaziGuncelle.setText(yeniMetin);
-                yaziGuncelle.setReplyMarkup(markupInline);
-                execute(yaziGuncelle);
-            } catch (TelegramApiException ex) { }
-        }
+            execute(yaziGuncelle);
+        } catch (TelegramApiException e) { }
     }
 
     private void oyunuBaslat(long grupChatId) {
@@ -552,7 +533,8 @@ public class VampirBot extends TelegramLongPollingBot {
         
         SendMessage mesaj = new SendMessage();
         mesaj.setChatId(String.valueOf(aktifGrupChatId));
-        mesaj.setText(oylamaMetniOlustur());
+        mesaj.setText(htmlFormatla(oylamaMetniOlustur(), null));
+        mesaj.setParseMode("HTML");
 
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
@@ -598,7 +580,8 @@ public class VampirBot extends TelegramLongPollingBot {
         EditMessageText yeniMesaj = new EditMessageText();
         yeniMesaj.setChatId(String.valueOf(aktifGrupChatId));
         yeniMesaj.setMessageId(oylamaMesajId);
-        yeniMesaj.setText(oylamaMetniOlustur());
+        yeniMesaj.setText(htmlFormatla(oylamaMetniOlustur(), null));
+        yeniMesaj.setParseMode("HTML");
 
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
@@ -709,13 +692,26 @@ public class VampirBot extends TelegramLongPollingBot {
         return false;
     }
     
+    // --- GÖRSEL SPAMINI ENGELLEYEN YARDIMCI METODLAR ---
+    
+    // YENİ: Hem tehlikeli HTML karakterlerini temizler, hem ** işaretlerini kalın yapar, hem de resmi medyaya kaydetmeden "Link Önizlemesi" olarak ekler.
+    private String htmlFormatla(String metin, String resimUrl) {
+        String guvenliMetin = metin.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        guvenliMetin = guvenliMetin.replaceAll("\\*\\*(.*?)\\*\\*", "<b>$1</b>"); // **kalın** yazıları <b>kalın</b> yapar
+        
+        if (resimUrl != null && !resimUrl.isEmpty()) {
+            return "<a href=\"" + resimUrl + "\">&#8203;</a>" + guvenliMetin;
+        }
+        return guvenliMetin;
+    }
+
     private void resimGonder(long chatId, String resimUrl, String metin) {
-        SendPhoto fotograf = new SendPhoto();
-        fotograf.setChatId(String.valueOf(chatId));
-        fotograf.setPhoto(new InputFile(resimUrl));
-        fotograf.setCaption(metin);
+        SendMessage mesaj = new SendMessage();
+        mesaj.setChatId(String.valueOf(chatId));
+        mesaj.setText(htmlFormatla(metin, resimUrl));
+        mesaj.setParseMode("HTML");
         try {
-            execute(fotograf);
+            execute(mesaj);
         } catch (TelegramApiException e) {
             mesajGonder(chatId, metin);
         }
@@ -724,7 +720,8 @@ public class VampirBot extends TelegramLongPollingBot {
     private void oyuncuSecimMenusuGonder(long chatId, String islemTuru, String mesajMetni) {
         SendMessage mesaj = new SendMessage();
         mesaj.setChatId(String.valueOf(chatId));
-        mesaj.setText(mesajMetni);
+        mesaj.setText(htmlFormatla(mesajMetni, null));
+        mesaj.setParseMode("HTML");
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
         
@@ -747,14 +744,16 @@ public class VampirBot extends TelegramLongPollingBot {
         EditMessageText yeniMesaj = new EditMessageText();
         yeniMesaj.setChatId(String.valueOf(chatId));
         yeniMesaj.setMessageId(messageId);
-        yeniMesaj.setText(yeniMetin);
+        yeniMesaj.setText(htmlFormatla(yeniMetin, null));
+        yeniMesaj.setParseMode("HTML");
         try { execute(yeniMesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
 
     private void mesajGonder(long chatId, String metin) {
         SendMessage mesaj = new SendMessage();
         mesaj.setChatId(String.valueOf(chatId));
-        mesaj.setText(metin);
+        mesaj.setText(htmlFormatla(metin, null));
+        mesaj.setParseMode("HTML");
         try { execute(mesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
 }
