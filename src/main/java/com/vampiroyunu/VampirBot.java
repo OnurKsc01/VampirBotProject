@@ -49,7 +49,7 @@ public class VampirBot extends TelegramLongPollingBot {
     private final String RESIM_SABAH_TEMIZ = "https://i.ibb.co/gLJ4BtPW/Ekran-g-r-nt-s-2026-03-01-171702.png";
     private final String RESIM_IDAM = "https://i.ibb.co/5XKHV7Dp/idam.jpg";
     
-    private final String RESIM_KAZANAN_KOYLU = "https://dummyimage.com/800x600/3abf2e/ffffff.jpg&text=Zafer:+Koyluler+Kazandi";
+    private final String RESIM_KAZANAN_KOYLU = "https://i.ibb.co/0y7YVr4k/Ekran-g-r-nt-s-2026-03-01-172054.png";
     private final String RESIM_KAZANAN_VAMPIR = "https://i.ibb.co/wZbGnFVQ/Ekran-g-r-nt-s-2026-03-01-173520.png";
 
     private final String RESIM_ROL_VAMPIR = "https://i.ibb.co/8gvVTXjS/Ekran-g-r-nt-s-2026-03-01-173803.png";
@@ -757,3 +757,4 @@ public class VampirBot extends TelegramLongPollingBot {
         try { execute(mesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
 }
+
