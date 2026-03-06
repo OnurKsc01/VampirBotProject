@@ -308,27 +308,29 @@ public class VampirBot extends TelegramLongPollingBot {
 
         int kisiSayisi = oyuncular.size();
         
-        // --- ROLLERİN SAYISINI BELİRLEME KISMI (MANUEL AYAR) ---
+        // --- ROLLERİN SAYISINI BELİRLEME KISMI (GÜNCELLENDİ) ---
         
         // 1. VAMPİR SAYISI
         int vampirSayisi = 1; 
         if (kisiSayisi >= 8 && kisiSayisi <= 14) {
             vampirSayisi = 2; 
-        } else if (kisiSayisi >= 15) {
+        } else if (kisiSayisi >= 15 && kisiSayisi <= 19) {
             vampirSayisi = 3; 
+        } else if (kisiSayisi >= 20) {
+            vampirSayisi = 4; // YENİ: 20 kişi ve üzerine 4 Vampir!
         }
 
         // 2. ŞİFACI SAYISI
-        int sifaciSayisi = 1;
+        int sifaciSayisi = 0;
         if (kisiSayisi >= 3 && kisiSayisi <= 9) {
-            sifaciSayisi = 2; // 3-9 kişi arası 1 Şifacı
+            sifaciSayisi = 1; // 3-9 kişi arası 1 Şifacı
         } else if (kisiSayisi >= 10) {
-            sifaciSayisi = 3; // 10 kişi ve üzerine 2 Şifacı!
+            sifaciSayisi = 2; // 10 kişi ve üzerine 2 Şifacı!
         }
 
         // 3. GÖZCÜ SAYISI
         int gozcuSayisi = 0;
-        if (kisiSayisi >= 4 && kisiSayisi <= 11) {
+        if (kisiSayisi >= 5 && kisiSayisi <= 11) {
             gozcuSayisi = 1; // 5-11 kişi arası 1 Gözcü
         } else if (kisiSayisi >= 12) {
             gozcuSayisi = 2; // 12 kişi ve üzerine 2 Gözcü!
@@ -385,6 +387,7 @@ public class VampirBot extends TelegramLongPollingBot {
         geceyiBaslat(grupChatId);
     }
 
+    
     private void geceyiBaslat(long grupChatId) {
         geceAktif = true; 
         System.out.println("[GİZLİ LOG] --- GECE BAŞLADI ---");
@@ -777,3 +780,4 @@ public class VampirBot extends TelegramLongPollingBot {
         try { execute(mesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
 }
+
