@@ -65,8 +65,8 @@ public class VampirBot extends TelegramLongPollingBot {
     private final String RESIM_ROL_SIFACI = "https://i.ibb.co/j9FMndv4/Ekran-g-r-nt-s-2026-03-01-174326.png";
     private final String RESIM_ROL_GOZCU = "https://i.ibb.co/YFgVg1Xj/Ekran-g-r-nt-s-2026-03-01-174610.png";
     private final String RESIM_ROL_KOYLU = "https://i.ibb.co/K4tLC9p/Ekran-g-r-nt-s-2026-03-01-174008.png";
-    private final String RESIM_ROL_AVCI = "https://dummyimage.com/800x600/8a5518/ffffff.jpg&text=ROLUN:+AVCI"; // YENİ
-    private final String RESIM_ROL_SARHOS = "https://dummyimage.com/800x600/d6871a/ffffff.jpg&text=ROLUN:+SARHOS"; // YENİ
+    private final String RESIM_ROL_AVCI = "https://i.ibb.co/M5np7fyt/Ekran-g-r-nt-s-2026-03-07-030816.png"; // YENİ
+    private final String RESIM_ROL_SARHOS = "https://i.ibb.co/zp69w3V/Ekran-g-r-nt-s-2026-03-07-031006.png"; // YENİ
 
     @Override
     public String getBotUsername() {
@@ -883,4 +883,5 @@ public class VampirBot extends TelegramLongPollingBot {
         try { execute(mesaj); } catch (TelegramApiException e) { e.printStackTrace(); }
     }
 }
+
 
